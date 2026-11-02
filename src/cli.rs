@@ -34,6 +34,14 @@ pub struct Cli {
     #[arg(long = "no-color")]
     pub no_color: bool,
 
+    /// Alternate background shading on data rows
+    #[arg(long = "zebra")]
+    pub zebra: bool,
+
+    /// Highlight negative numbers
+    #[arg(long = "negative-highlight")]
+    pub negative_highlight: bool,
+
     /// Show row numbers
     #[arg(long = "row-numbers")]
     pub row_numbers: bool,
@@ -60,6 +68,12 @@ pub enum Command {
         /// Don't use colors
         #[arg(long = "no-color")]
         no_color: bool,
+        /// Alternate background shading on data rows
+        #[arg(long = "zebra")]
+        zebra: bool,
+        /// Highlight negative numbers
+        #[arg(long = "negative-highlight")]
+        negative_highlight: bool,
     },
     /// Show all rows
     Full {
@@ -80,6 +94,12 @@ pub enum Command {
         /// Don't use colors
         #[arg(long = "no-color")]
         no_color: bool,
+        /// Alternate background shading on data rows
+        #[arg(long = "zebra")]
+        zebra: bool,
+        /// Highlight negative numbers
+        #[arg(long = "negative-highlight")]
+        negative_highlight: bool,
     },
 }
 

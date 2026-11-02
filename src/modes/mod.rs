@@ -2,9 +2,11 @@ pub mod full;
 pub mod head;
 
 use crate::cli::{Format, Style};
+use crate::data::Value;
+use crate::output::style::Palette;
 use crate::output::{grid, plain};
 use crate::source::{open_source, parse_delimiter, DataSource, Input, SourceOptions};
-use crate::table::Table;
+use crate::table::{Cell, CellKind, Table};
 use anyhow::Result;
 use std::path::PathBuf;
 
@@ -39,20 +41,34 @@ pub fn header_names(source: &dyn DataSource) -> Option<Vec<String>> {
     }
 }
 
-/// Reads at most `limit` records as display strings.
-pub fn collect_rows(source: &mut dyn DataSource, limit: usize) -> Result<Vec<Vec<String>>> {
+/// Reads at most `limit` records as display cells.
+pub fn collect_rows(source: &mut dyn DataSource, limit: usize) -> Result<Vec<Vec<Cell>>> {
     let mut rows = Vec::new();
     while rows.len() < limit {
         let Some(record) = source.next_record()? else {
             break;
         };
-        rows.push(record.values.iter().map(ToString::to_string).collect());
+        rows.push(record.values.iter().map(to_cell).collect());
     }
     Ok(rows)
 }
 
+fn to_cell(value: &Value) -> Cell {
+    let kind = match value {
+        Value::Null => CellKind::Null,
+        Value::Boolean(b) => CellKind::Boolean(*b),
+        Value::Integer(i) => CellKind::Number { negative: *i < 0 },
+        Value::Float(x) => CellKind::Number { negative: *x < 0.0 },
+        Value::String(_) | Value::Json(_) => CellKind::Text,
+    };
+    Cell {
+        text: value.to_string(),
+        kind,
+    }
+}
+
 /// Pads headers and all rows to a common width.
-pub fn make_table(headers: Option<Vec<String>>, mut rows: Vec<Vec<String>>) -> Table {
+pub fn make_table(headers: Option<Vec<String>>, mut rows: Vec<Vec<Cell>>) -> Table {
     let width = headers
         .iter()
         .map(Vec::len)
@@ -65,15 +81,15 @@ pub fn make_table(headers: Option<Vec<String>>, mut rows: Vec<Vec<String>>) -> T
         h
     });
     for row in &mut rows {
-        row.resize(width, String::new());
+        row.resize(width, Cell::text(""));
     }
 
     Table { headers, rows }
 }
 
-pub fn render(style: &Style, table: &Table) -> String {
+pub fn render(style: &Style, table: &Table, palette: &Palette) -> String {
     match style {
-        Style::Plain => plain::render(table),
-        Style::Grid => grid::render(table),
+        Style::Plain => plain::render(table, palette),
+        Style::Grid => grid::render(table, palette),
     }
 }

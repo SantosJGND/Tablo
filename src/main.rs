@@ -10,7 +10,16 @@ mod terminal;
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Command, Style};
+use output::style::Palette;
 use std::io::{self, Write};
+
+fn palette(no_color: bool, zebra: bool, negative_highlight: bool) -> Palette {
+    Palette {
+        color: terminal::color_enabled(no_color),
+        zebra,
+        negative_highlight,
+    }
+}
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -22,7 +31,9 @@ fn main() -> Result<()> {
             delimiter,
             no_header,
             format,
-            no_color: _,
+            no_color,
+            zebra,
+            negative_highlight,
         }) => modes::head::run(
             file.as_deref(),
             delimiter.as_deref(),
@@ -30,6 +41,7 @@ fn main() -> Result<()> {
             no_header,
             &Style::Plain,
             format.as_ref(),
+            palette(no_color, zebra, negative_highlight),
         )?,
         Some(Command::Full {
             file,
@@ -37,13 +49,16 @@ fn main() -> Result<()> {
             no_header,
             style,
             format,
-            no_color: _,
+            no_color,
+            zebra,
+            negative_highlight,
         }) => modes::full::run(
             file.as_deref(),
             delimiter.as_deref(),
             no_header,
             &style,
             format.as_ref(),
+            palette(no_color, zebra, negative_highlight),
         )?,
         None => modes::head::run(
             cli.file.as_deref(),
@@ -52,6 +67,7 @@ fn main() -> Result<()> {
             cli.no_header,
             &cli.style,
             cli.format.as_ref(),
+            palette(cli.no_color, cli.zebra, cli.negative_highlight),
         )?,
     };
 

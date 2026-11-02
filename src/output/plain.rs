@@ -1,31 +1,27 @@
-use crate::formatter::{display_width, pad_to_width, truncate_to_width};
-use crate::table::Table;
+use crate::formatter::display_width;
+use crate::output::style::{fit_cell, fit_header, Palette};
+use crate::table::{Cell, Table};
 use crate::terminal::get_terminal_width;
 
-pub fn render(table: &Table) -> String {
+pub fn render(table: &Table, palette: &Palette) -> String {
     let mut output = String::new();
     let term_width = get_terminal_width();
 
-    // Collect all rows for width calculation
-    let mut all_rows: Vec<Vec<String>> = Vec::new();
-    if let Some(ref headers) = table.headers {
-        all_rows.push(headers.clone());
-    }
-    all_rows.extend(table.rows.iter().cloned());
-
-    if all_rows.is_empty() {
-        return output;
-    }
-
-    let num_cols = all_rows[0].len();
+    let num_cols = match (&table.headers, table.rows.first()) {
+        (Some(headers), _) => headers.len(),
+        (None, Some(row)) => row.len(),
+        (None, None) => return output,
+    };
     let mut col_widths = vec![0usize; num_cols];
 
-    for row in &all_rows {
+    if let Some(ref headers) = table.headers {
+        for (i, cell) in headers.iter().enumerate().take(num_cols) {
+            col_widths[i] = col_widths[i].max(display_width(cell));
+        }
+    }
+    for row in &table.rows {
         for (i, cell) in row.iter().enumerate().take(num_cols) {
-            let w = display_width(cell);
-            if w > col_widths[i] {
-                col_widths[i] = w;
-            }
+            col_widths[i] = col_widths[i].max(display_width(&cell.text));
         }
     }
 
@@ -61,25 +57,23 @@ pub fn render(table: &Table) -> String {
             .iter()
             .enumerate()
             .take(num_cols)
-            .map(|(i, cell)| {
-                let truncated = truncate_to_width(cell, col_widths[i]);
-                pad_to_width(&truncated, col_widths[i])
-            })
+            .map(|(i, cell)| fit_header(palette, cell, col_widths[i]))
             .collect();
         output.push_str(&parts.join("  "));
         output.push('\n');
     }
 
-    // Render rows
-    for row in &table.rows {
+    // Render rows; odd data rows get the zebra background when enabled.
+    let empty = Cell::text("");
+    for (r, row) in table.rows.iter().enumerate() {
+        let zebra = r % 2 == 1;
         let parts: Vec<String> = (0..num_cols)
             .map(|i| {
-                let cell = row.get(i).map(|s| s.as_str()).unwrap_or("");
-                let truncated = truncate_to_width(cell, col_widths[i]);
-                pad_to_width(&truncated, col_widths[i])
+                let cell = row.get(i).unwrap_or(&empty);
+                fit_cell(palette, cell, col_widths[i], zebra)
             })
             .collect();
-        output.push_str(&parts.join("  "));
+        output.push_str(&parts.join(&palette.filler("  ", zebra)));
         output.push('\n');
     }
 

@@ -1,3 +1,6 @@
+// Each integration test crate includes this module but uses only some helpers.
+#![allow(dead_code)]
+
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};

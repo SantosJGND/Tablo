@@ -1,5 +1,6 @@
 use super::{collect_rows, header_names, make_table, open, render};
 use crate::cli::{Format, Style};
+use crate::output::style::Palette;
 use anyhow::Result;
 
 pub fn run(
@@ -9,6 +10,7 @@ pub fn run(
     no_header: bool,
     style: &Style,
     format: Option<&Format>,
+    palette: Palette,
 ) -> Result<String> {
     let mut source = open(file, delimiter, !no_header, format)?;
     let headers = header_names(source.as_ref());
@@ -20,7 +22,7 @@ pub fn run(
     let mut table = make_table(headers, rows);
     table.rows.truncate(lines);
 
-    let mut output = render(style, &table);
+    let mut output = render(style, &table, &palette);
     if has_more {
         output.push_str("...\n");
     }

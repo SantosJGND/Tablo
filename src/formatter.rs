@@ -30,12 +30,3 @@ pub fn truncate_to_width(s: &str, max_width: usize) -> String {
     result.push_str("...");
     result
 }
-
-pub fn pad_to_width(s: &str, width: usize) -> String {
-    let dw = display_width(s);
-    if dw >= width {
-        s.to_string()
-    } else {
-        format!("{}{}", s, " ".repeat(width - dw))
-    }
-}
