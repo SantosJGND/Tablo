@@ -68,7 +68,7 @@ impl DataSource for CsvSource {
             None => read_fields(&mut self.reader)?,
         };
         Ok(fields.map(|fields| Record {
-            values: fields.into_iter().map(Value::String).collect(),
+            values: fields.into_iter().map(infer_value).collect(),
         }))
     }
 
@@ -85,6 +85,65 @@ impl DataSource for CsvSource {
             projection: false,
             known_schema: false,
             known_row_count: false,
+        }
+    }
+}
+
+/// Conservative inference for a CSV cell. A value is typed only when its
+/// canonical text equals the original, so display text never changes:
+/// `00123`, `1.50`, `1e5`, `inf` and `NaN` stay strings.
+fn infer_value(text: String) -> Value {
+    if text.is_empty() {
+        return Value::Null;
+    }
+    match text.as_str() {
+        "true" => return Value::Boolean(true),
+        "false" => return Value::Boolean(false),
+        _ => {}
+    }
+    if let Ok(i) = text.parse::<i64>() {
+        if i.to_string() == text {
+            return Value::Integer(i);
+        }
+    }
+    if let Ok(x) = text.parse::<f64>() {
+        if x.is_finite() && x.to_string() == text {
+            return Value::Float(x);
+        }
+    }
+    Value::String(text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::infer_value;
+    use crate::data::Value;
+
+    #[test]
+    fn classifies_conservatively() {
+        assert_eq!(infer_value("true".into()), Value::Boolean(true));
+        assert_eq!(infer_value("false".into()), Value::Boolean(false));
+        assert_eq!(infer_value("42".into()), Value::Integer(42));
+        assert_eq!(infer_value("-3".into()), Value::Integer(-3));
+        assert_eq!(infer_value("1.5".into()), Value::Float(1.5));
+        assert_eq!(infer_value("".into()), Value::Null);
+    }
+
+    #[test]
+    fn non_canonical_text_stays_string() {
+        for text in ["00123", "1.50", "1e5", "inf", "NaN", "+1", "True", "-0.0"] {
+            assert_eq!(
+                infer_value(text.into()),
+                Value::String(text.into()),
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn display_text_is_always_preserved() {
+        for text in ["00123", "1.50", "42", "-3", "1.5", "true", "", "x y", "1e5"] {
+            assert_eq!(infer_value(text.into()).to_string(), text);
         }
     }
 }
