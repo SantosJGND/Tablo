@@ -1,31 +1,20 @@
-use crate::detect::{detect_delimiter, parse_delimiter};
-use crate::input::read_input;
-use crate::output::{grid, plain};
-use crate::parser::parse_table;
-use crate::table::Table;
+use super::{collect_rows, header_names, make_table, open, render};
+use crate::cli::Style;
 use anyhow::Result;
 
 pub fn run(
     file: Option<&str>,
     delimiter: Option<&str>,
     no_header: bool,
-    style: &crate::cli::Style,
+    style: &Style,
 ) -> Result<String> {
-    let input = read_input(file)?;
-    
-    let delim = if let Some(d) = delimiter {
-        parse_delimiter(d)?
-    } else {
-        detect_delimiter(&input)?
-    };
-    
-    let table = parse_table(&input, delim, !no_header)?;
-    
-    let mut output = match style {
-        crate::cli::Style::Plain => plain::render(&table),
-        crate::cli::Style::Grid => grid::render(&table),
-    };
-    
+    let mut source = open(file, delimiter, !no_header)?;
+    let headers = header_names(source.as_ref());
+    let rows = collect_rows(source.as_mut(), usize::MAX)?;
+    let table = make_table(headers, rows);
+
+    let mut output = render(style, &table);
+
     // Add dataset dimensions
     let num_rows = table.rows.len();
     let num_cols = if let Some(ref headers) = table.headers {
@@ -36,6 +25,6 @@ pub fn run(
         0
     };
     output.push_str(&format!("{} rows × {} columns\n", num_rows, num_cols));
-    
+
     Ok(output)
 }

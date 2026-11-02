@@ -7,7 +7,3 @@ pub fn get_terminal_width() -> Option<usize> {
         None
     }
 }
-
-pub fn is_terminal() -> bool {
-    atty::is(atty::Stream::Stdout)
-}

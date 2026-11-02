@@ -5,21 +5,21 @@ use crate::terminal::get_terminal_width;
 pub fn render(table: &Table) -> String {
     let mut output = String::new();
     let term_width = get_terminal_width();
-    
+
     // Collect all rows for width calculation
     let mut all_rows: Vec<Vec<String>> = Vec::new();
     if let Some(ref headers) = table.headers {
         all_rows.push(headers.clone());
     }
     all_rows.extend(table.rows.iter().cloned());
-    
+
     if all_rows.is_empty() {
         return output;
     }
-    
+
     let num_cols = all_rows[0].len();
     let mut col_widths = vec![0usize; num_cols];
-    
+
     for row in &all_rows {
         for (i, cell) in row.iter().enumerate().take(num_cols) {
             let w = display_width(cell);
@@ -28,10 +28,11 @@ pub fn render(table: &Table) -> String {
             }
         }
     }
-    
+
     // Apply terminal width constraints
     if let Some(tw) = term_width {
-        let total_width: usize = col_widths.iter().sum::<usize>() + (num_cols.saturating_sub(1)) * 2;
+        let total_width: usize =
+            col_widths.iter().sum::<usize>() + (num_cols.saturating_sub(1)) * 2;
         if total_width > tw {
             // Truncate widest columns
             let mut excess = total_width as i32 - tw as i32;
@@ -53,7 +54,7 @@ pub fn render(table: &Table) -> String {
             }
         }
     }
-    
+
     // Render header
     if let Some(ref headers) = table.headers {
         let parts: Vec<String> = headers
@@ -68,7 +69,7 @@ pub fn render(table: &Table) -> String {
         output.push_str(&parts.join("  "));
         output.push('\n');
     }
-    
+
     // Render rows
     for row in &table.rows {
         let parts: Vec<String> = (0..num_cols)
@@ -81,6 +82,6 @@ pub fn render(table: &Table) -> String {
         output.push_str(&parts.join("  "));
         output.push('\n');
     }
-    
+
     output
 }
