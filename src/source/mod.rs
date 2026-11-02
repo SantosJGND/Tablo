@@ -4,12 +4,13 @@
 
 mod csv;
 mod detect;
+mod jsonl;
 
 use crate::data::{Record, Schema};
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use std::fs::File;
 use std::io::{self, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub use detect::parse_delimiter;
 
@@ -34,6 +35,12 @@ pub struct SourceCapabilities {
     pub known_row_count: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Format {
+    Csv,
+    Jsonl,
+}
+
 pub enum Input {
     File(PathBuf),
     Stdin,
@@ -41,11 +48,20 @@ pub enum Input {
 
 #[derive(Debug, Default)]
 pub struct SourceOptions {
+    /// Explicit format; when `None`, the format is taken from the file extension
+    /// (stdin defaults to CSV).
+    pub format: Option<Format>,
     pub delimiter: Option<u8>,
     pub has_header: bool,
 }
 
 pub fn open_source(input: Input, options: SourceOptions) -> Result<Box<dyn DataSource>> {
+    let format = match (options.format, &input) {
+        (Some(format), _) => format,
+        (None, Input::File(path)) => format_from_extension(path),
+        (None, Input::Stdin) => Format::Csv,
+    };
+
     let reader: Box<dyn Read> = match input {
         Input::File(path) => Box::new(
             File::open(&path)
@@ -54,14 +70,35 @@ pub fn open_source(input: Input, options: SourceOptions) -> Result<Box<dyn DataS
         Input::Stdin => Box::new(io::stdin()),
     };
 
-    let (delimiter, reader) = match options.delimiter {
-        Some(delimiter) => (delimiter, reader),
-        None => detect::sniff(reader)?,
-    };
+    match format {
+        Format::Jsonl => {
+            if options.delimiter.is_some() {
+                bail!("--delimiter does not apply to JSONL input");
+            }
+            Ok(Box::new(jsonl::JsonlSource::new(reader)?))
+        }
+        Format::Csv => {
+            let (delimiter, reader) = match options.delimiter {
+                Some(delimiter) => (delimiter, reader),
+                None => detect::sniff(reader)?,
+            };
+            Ok(Box::new(csv::CsvSource::new(
+                reader,
+                delimiter,
+                options.has_header,
+            )?))
+        }
+    }
+}
 
-    Ok(Box::new(csv::CsvSource::new(
-        reader,
-        delimiter,
-        options.has_header,
-    )?))
+fn format_from_extension(path: &Path) -> Format {
+    match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("jsonl") | Some("ndjson") => Format::Jsonl,
+        _ => Format::Csv,
+    }
 }

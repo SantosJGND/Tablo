@@ -26,6 +26,10 @@ pub struct Cli {
     #[arg(long = "style", value_enum, default_value = "plain")]
     pub style: Style,
 
+    /// Input format (detected from file extension if not given)
+    #[arg(long = "format", value_enum)]
+    pub format: Option<Format>,
+
     /// Don't use colors
     #[arg(long = "no-color")]
     pub no_color: bool,
@@ -50,6 +54,9 @@ pub enum Command {
         /// Treat first row as data, not header
         #[arg(long = "no-header")]
         no_header: bool,
+        /// Input format (detected from file extension if not given)
+        #[arg(long = "format", value_enum)]
+        format: Option<Format>,
         /// Don't use colors
         #[arg(long = "no-color")]
         no_color: bool,
@@ -67,6 +74,9 @@ pub enum Command {
         /// Output style
         #[arg(long = "style", value_enum, default_value = "plain")]
         style: Style,
+        /// Input format (detected from file extension if not given)
+        #[arg(long = "format", value_enum)]
+        format: Option<Format>,
         /// Don't use colors
         #[arg(long = "no-color")]
         no_color: bool,
@@ -77,4 +87,19 @@ pub enum Command {
 pub enum Style {
     Plain,
     Grid,
+}
+
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Format {
+    Csv,
+    Jsonl,
+}
+
+impl From<&Format> for crate::source::Format {
+    fn from(format: &Format) -> Self {
+        match format {
+            Format::Csv => crate::source::Format::Csv,
+            Format::Jsonl => crate::source::Format::Jsonl,
+        }
+    }
 }

@@ -1,8 +1,7 @@
 pub mod full;
 pub mod head;
 
-use crate::cli::Style;
-use crate::data::Value;
+use crate::cli::{Format, Style};
 use crate::output::{grid, plain};
 use crate::source::{open_source, parse_delimiter, DataSource, Input, SourceOptions};
 use crate::table::Table;
@@ -13,6 +12,7 @@ pub fn open(
     file: Option<&str>,
     delimiter: Option<&str>,
     has_header: bool,
+    format: Option<&Format>,
 ) -> Result<Box<dyn DataSource>> {
     let input = match file {
         Some(path) => Input::File(PathBuf::from(path)),
@@ -22,6 +22,7 @@ pub fn open(
     open_source(
         input,
         SourceOptions {
+            format: format.map(crate::source::Format::from),
             delimiter,
             has_header,
         },
@@ -45,15 +46,7 @@ pub fn collect_rows(source: &mut dyn DataSource, limit: usize) -> Result<Vec<Vec
         let Some(record) = source.next_record()? else {
             break;
         };
-        rows.push(
-            record
-                .values
-                .into_iter()
-                .map(|value| match value {
-                    Value::String(s) => s,
-                })
-                .collect(),
-        );
+        rows.push(record.values.iter().map(ToString::to_string).collect());
     }
     Ok(rows)
 }

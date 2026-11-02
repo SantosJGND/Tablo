@@ -21,6 +21,7 @@ fn main() -> Result<()> {
             lines,
             delimiter,
             no_header,
+            format,
             no_color: _,
         }) => modes::head::run(
             file.as_deref(),
@@ -28,20 +29,29 @@ fn main() -> Result<()> {
             lines,
             no_header,
             &Style::Plain,
+            format.as_ref(),
         )?,
         Some(Command::Full {
             file,
             delimiter,
             no_header,
             style,
+            format,
             no_color: _,
-        }) => modes::full::run(file.as_deref(), delimiter.as_deref(), no_header, &style)?,
+        }) => modes::full::run(
+            file.as_deref(),
+            delimiter.as_deref(),
+            no_header,
+            &style,
+            format.as_ref(),
+        )?,
         None => modes::head::run(
             cli.file.as_deref(),
             cli.delimiter.as_deref(),
             cli.lines,
             cli.no_header,
             &cli.style,
+            cli.format.as_ref(),
         )?,
     };
 

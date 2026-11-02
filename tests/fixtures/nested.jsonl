@@ -1,0 +1,2 @@
+{"id":1,"user":{"name":"Alice","email":"alice@example.com","address":{"city":"London"}},"tags":["a","b"],"meta":{}}
+{"id":2,"user":{"name":"Bob","email":"bob@example.com","address":{"city":"Paris"}},"tags":[],"meta":{"k":1}}
