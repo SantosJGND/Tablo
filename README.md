@@ -1,5 +1,8 @@
 # tablo
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust 1.84+](https://img.shields.io/badge/rust-1.84%2B-orange.svg)](Cargo.toml)
+
 Inspect tabular data in the terminal.
 
 `tablo` is a small command-line tool for looking at CSV, TSV, and JSONL data
