@@ -41,10 +41,6 @@ pub struct Cli {
     /// Highlight negative numbers
     #[arg(long = "negative-highlight")]
     pub negative_highlight: bool,
-
-    /// Show row numbers
-    #[arg(long = "row-numbers")]
-    pub row_numbers: bool,
 }
 
 #[derive(Subcommand, Debug)]

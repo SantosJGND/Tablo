@@ -1,1 +1,7 @@
-/target
+/target/
+*.profraw
+.DS_Store
+.env
+.env.*
+/instructions*.md
+/instrcutions*.md
